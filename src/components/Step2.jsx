@@ -15,7 +15,7 @@ const Step2 = ({ onNext }) => {
           </div>
           <select className="select select-bordered">
             <option disabled selected>
-              Choose Position
+              Choose a Position
             </option>
             <option>Class 2 Driver</option>
             <option>Field Agent</option>
