@@ -7,6 +7,7 @@ import { CiSquarePlus } from "react-icons/ci";
 import { BsDot } from "react-icons/bs";
 import { firestore } from "../../firebase";
 import { useRouter } from "next/router";
+import { v4 as uuidv4 } from "uuid";
 
 const Step4 = ({ formData }) => {
   const [phoneOrEmail, setPhoneOrEmail] = useState("");
@@ -38,8 +39,12 @@ const Step4 = ({ formData }) => {
 
       // Upload the image to Firebase Storage
       if (selectedImage) {
-        const imageRef = ref(storage, `images/${selectedImage.name}`);
-        await uploadBytes(imageRef, selectedImage);
+        const uniqueId = uuidv4();
+        const imageRef = ref(storage, `images/${uniqueId}`);
+        const response = await fetch(selectedImage); // Fetch the image blob
+        const blob = await response.blob(); // Convert to Blob
+        await uploadBytes(imageRef, blob); // Upload the blob
+
         const imageUrl = await getDownloadURL(imageRef);
 
         const newContact = {

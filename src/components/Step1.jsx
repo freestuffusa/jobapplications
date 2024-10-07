@@ -96,7 +96,7 @@ const Step1 = ({ onNext }) => {
             />
             <div className="flex p-6 flex-col items-center">
               <AiOutlineUpload className="text-4xl text-gray-500 mb-2" />
-              <span className="text-gray-800 font-bold">
+              <span className="text-gray-800 text-center font-bold">
                 Upload the front of your National ID
               </span>
             </div>
