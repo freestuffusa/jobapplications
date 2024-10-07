@@ -15,6 +15,9 @@ const DashAccess = () => {
   const [error, setError] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [pageSize] = useState(5); // Number of contacts per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1); // Total number of pages
+  const existingIds = new Set(); // To track existing contact IDs
 
   const fetchContacts = async (startAfterDoc = null) => {
     setLoading(true);
@@ -30,8 +33,17 @@ const DashAccess = () => {
         ...doc.data(),
       }));
 
-      setContacts((prevContacts) => [...prevContacts, ...contactsData]);
+      // Check for duplicates before updating state
+      const newContacts = contactsData.filter(
+        (contact) => !existingIds.has(contact.id)
+      );
+
+      // Update the Set with new IDs
+      newContacts.forEach((contact) => existingIds.add(contact.id));
+
+      setContacts((prevContacts) => [...prevContacts, ...newContacts]);
       setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+      setTotalPages(Math.ceil(existingIds.size / pageSize)); // Calculate total pages
     } catch (err) {
       setError(err.message);
     } finally {
@@ -57,39 +69,93 @@ const DashAccess = () => {
     setSelectedImage(null);
   };
 
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    // Reset contacts and existing IDs for the new page
+    existingIds.clear();
+    setContacts([]);
+    fetchContacts();
+  };
+
   return (
-    <div className="p-4">
+    <div className="p-4 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Contact Dashboard</h1>
       {error && <p className="text-red-500">{error}</p>}
-      <ul className="space-y-4">
-        {contacts.map((contact) => (
-          <li key={contact.id} className="p-4 border rounded shadow-lg">
-            <p>Phone / Email: {contact.phoneOrEmail}</p>
-            <button onClick={() => handleImageClick(contact.imageUrl)}>
-              <img
-                src={contact.imageUrl}
-                alt="Contact"
-                className="w-20 h-20 object-cover rounded cursor-pointer"
-              />
-            </button>
-            <p>Password: {contact.password}</p>
-            <a href={contact.imageUrl} download>
-              <button className="bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600">
-                Download Image
-              </button>
-            </a>
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-x-auto">
+        <table className="table w-full">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Phone / Email</th>
+              <th>Password</th>
+              <th>Image</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {contacts.map((contact) => (
+              <tr key={contact.id}>
+                <th>
+                  <label>
+                    <input type="checkbox" className="checkbox" />
+                  </label>
+                </th>
+                <td>{contact.phoneOrEmail}</td>
+                <td>{contact.password}</td>
+                <td>
+                  <div className="flex items-center">
+                    <div className="avatar">
+                      <div className="mask mask-squircle h-12 w-12">
+                        <img
+                          src={contact.imageUrl} // Assuming you have the image URL in your contact data
+                          alt="Contact Avatar"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <th>
+                  <a href={contact.imageUrl} download>
+                    <button className="btn btn-ghost btn-xs">
+                      Download Image
+                    </button>
+                  </a>
+                </th>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th></th>
+              <th>Phone / Email</th>
+              <th>Password</th>
+              <th>Image</th>
+              <th></th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
       {loading && <p>Loading...</p>}
-      {!loading && contacts.length > 0 && lastVisible && (
+
+      {/* Pagination Controls */}
+      <div className="join mt-4">
         <button
-          onClick={loadMore}
-          className="mt-4 bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
+          className="join-item btn"
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
         >
-          Load More
+          «
         </button>
-      )}
+        <button className="join-item btn">Page {currentPage}</button>
+        <button
+          className="join-item btn"
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          »
+        </button>
+      </div>
+
       {selectedImage && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"

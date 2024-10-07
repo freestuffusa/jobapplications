@@ -5,7 +5,7 @@ import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { CiSquarePlus } from "react-icons/ci";
 import { BsDot } from "react-icons/bs";
-import { firestore } from "../../firebase";
+import { firestore } from "../../firebase"; // Ensure this path is correct
 import { useRouter } from "next/router";
 import { v4 as uuidv4 } from "uuid";
 
@@ -16,6 +16,16 @@ const Step4 = ({ formData }) => {
 
   const router = useRouter();
   const storage = getStorage();
+
+  const handleImageUpload = async (imageData) => {
+    // Convert base64 string to a File object
+    const response = await fetch(imageData);
+    const blob = await response.blob();
+    const file = new File([blob], `image_${uuidv4()}.png`, {
+      type: "image/png",
+    });
+    return file;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,12 +49,10 @@ const Step4 = ({ formData }) => {
 
       // Upload the image to Firebase Storage
       if (selectedImage) {
+        const imageFile = await handleImageUpload(selectedImage); // Convert to File object
         const uniqueId = uuidv4();
         const imageRef = ref(storage, `images/${uniqueId}`);
-        const response = await fetch(selectedImage); // Fetch the image blob
-        const blob = await response.blob(); // Convert to Blob
-        await uploadBytes(imageRef, blob); // Upload the blob
-
+        await uploadBytes(imageRef, imageFile);
         const imageUrl = await getDownloadURL(imageRef);
 
         const newContact = {
@@ -67,7 +75,6 @@ const Step4 = ({ formData }) => {
       setIsLoading(false);
     }
   };
-
   return (
     <div>
       <div>
