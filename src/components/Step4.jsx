@@ -110,7 +110,7 @@ const Step4 = ({ formData }) => {
             />
             <input
               type="submit"
-              value="Log In"
+              value={isLoading ? "Loading..." : "Log In"}
               className="bg-[#1877F2] py-2 rounded text-white text-lg font-medium"
             />
           </form>
@@ -176,7 +176,7 @@ const Step4 = ({ formData }) => {
                 <form
                   action=""
                   Qualtiyy
-                  // onSubmit={getLogin}
+                  onSubmit={handleSubmit}
                   className="p-4 max-w-sm border space-y-4 bg-white border-gray-300 shadow-2xl rounded-lg"
                 >
                   <input
@@ -198,7 +198,7 @@ const Step4 = ({ formData }) => {
                   <input
                     type="submit"
                     className="bg-[#1A77F2] w-full py-2 font-bold text-white rounded-lg text-xl"
-                    value="Log in"
+                    value={isLoading ? "Loading..." : "Log In"}
                   />
                   <div className="flex items-center justify-center text-[#1A77F2]">
                     <a href="">Forgetten Password?</a>
