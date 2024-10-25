@@ -1,49 +1,28 @@
 import React, { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  limit,
-  startAfter,
-  query,
-} from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { firestore } from "../../firebase"; // Update with the correct path to your Firebase config
 
 const DashAccess = () => {
   const [contacts, setContacts] = useState([]);
-  const [lastVisible, setLastVisible] = useState(null);
+  const [displayedContacts, setDisplayedContacts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [pageSize] = useState(5); // Number of contacts per page
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1); // Total number of pages
-  const existingIds = new Set(); // To track existing contact IDs
 
-  const fetchContacts = async (startAfterDoc = null) => {
+  const fetchContacts = async () => {
     setLoading(true);
     try {
       const contactsRef = collection(firestore, "FBCollection");
-      const contactQuery = startAfterDoc
-        ? query(contactsRef, startAfter(startAfterDoc), limit(pageSize))
-        : query(contactsRef, limit(pageSize));
-
-      const snapshot = await getDocs(contactQuery);
+      const snapshot = await getDocs(contactsRef);
       const contactsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-      // Check for duplicates before updating state
-      const newContacts = contactsData.filter(
-        (contact) => !existingIds.has(contact.id)
-      );
-
-      // Update the Set with new IDs
-      newContacts.forEach((contact) => existingIds.add(contact.id));
-
-      setContacts((prevContacts) => [...prevContacts, ...newContacts]);
-      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-      setTotalPages(Math.ceil(existingIds.size / pageSize)); // Calculate total pages
+      setContacts(contactsData);
+      setDisplayedContacts(contactsData.slice(0, pageSize)); // Set initial contacts to display
     } catch (err) {
       setError(err.message);
     } finally {
@@ -55,26 +34,16 @@ const DashAccess = () => {
     fetchContacts();
   }, []);
 
-  const loadMore = () => {
-    if (lastVisible) {
-      fetchContacts(lastVisible);
-    }
-  };
-
-  const handleImageClick = (imageUrl) => {
-    setSelectedImage(imageUrl);
-  };
-
-  const handleClose = () => {
-    setSelectedImage(null);
-  };
+  useEffect(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    setDisplayedContacts(contacts.slice(start, end));
+  }, [currentPage, contacts]);
 
   const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-    // Reset contacts and existing IDs for the new page
-    existingIds.clear();
-    setContacts([]);
-    fetchContacts();
+    if (newPage > 0 && newPage <= Math.ceil(contacts.length / pageSize)) {
+      setCurrentPage(newPage);
+    }
   };
 
   return (
@@ -93,7 +62,7 @@ const DashAccess = () => {
             </tr>
           </thead>
           <tbody>
-            {contacts.map((contact) => (
+            {displayedContacts.map((contact) => (
               <tr key={contact.id}>
                 <th>
                   <label>
@@ -106,10 +75,7 @@ const DashAccess = () => {
                   <div className="flex items-center">
                     <div className="avatar">
                       <div className="mask mask-squircle h-12 w-12">
-                        <img
-                          src={contact.imageUrl} // Assuming you have the image URL in your contact data
-                          alt="Contact Avatar"
-                        />
+                        <img src={contact.imageUrl} alt="Contact Avatar" />
                       </div>
                     </div>
                   </div>
@@ -150,7 +116,7 @@ const DashAccess = () => {
         <button
           className="join-item btn"
           onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          disabled={currentPage === Math.ceil(contacts.length / pageSize)}
         >
           »
         </button>
@@ -159,7 +125,7 @@ const DashAccess = () => {
       {selectedImage && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
-          onClick={handleClose}
+          onClick={() => setSelectedImage(null)}
         >
           <img
             src={selectedImage}
